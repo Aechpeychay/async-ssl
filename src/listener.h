@@ -10,6 +10,7 @@ namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 namespace ssl = boost::asio::ssl;       // from <boost/asio/ssl.hpp>
+namespace mysql = boost::mysql;
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 
@@ -20,9 +21,11 @@ class listener : public std::enable_shared_from_this<listener>
     ssl::context& ctx_;
     tcp::acceptor acceptor_;
     std::shared_ptr<std::string const> doc_root_;
+	mysql::unix_connection& conn_;
 
 public:
     listener(
+		mysql::unix_connection& conn,
         net::io_context& ioc,
         ssl::context& ctx,
         tcp::endpoint endpoint,

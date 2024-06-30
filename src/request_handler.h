@@ -6,14 +6,19 @@
 #include <boost/asio/strand.hpp>
 #include <boost/config.hpp>
 #include <cstdlib>
+#include <iostream>
 #include <memory>
 #include <string>
+#include <boost/mysql/unix.hpp>
+#include <boost/json.hpp>
+#include <Poco/Net/SMTPClientSession.h>
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 namespace ssl = boost::asio::ssl;       // from <boost/asio/ssl.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+using namespace std::literals;
 	// Return a reasonable mime type based on the extension of a file.
 	beast::string_view
 	mime_type(beast::string_view path);
@@ -24,19 +29,28 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 	path_cat(
 		beast::string_view base,
 		beast::string_view path);
-	// This function produces an HTTP response for the given
-	// request. The type of the response object depends on the
-	// contents of the request, so the interface requires the
-	// caller to pass a generic lambda for receiving the response.
-	template<
-		class Body, class Allocator,
-		class Send>
-	void
-	handle_request(
-		beast::string_view doc_root,
-		http::request<Body, http::basic_fields<Allocator>>&& req,
-		Send&& send)
+// This function produces an HTTP response for the given
+// request. The type of the response object depends on the
+// contents of the request, so the interface requires the
+// caller to pass a generic lambda for receiving the response.
+template<
+	class Body, class Allocator,
+	class Send>
+void
+handle_request(
+	beast::string_view doc_root,
+	http::request<Body, http::basic_fields<Allocator>>&& req,
+	Send&& send,	
+	boost::mysql::unix_connection& conn_)
 {
+	if(req.target() == "/register"){
+		boost::json::object log_data = boost::json::parse(req.body()).as_object();
+		boost::mysql::statement stmt = conn_.prepare_statement(
+			"insert into users (name, email) values (" + boost::json::serialize(log_data["name"]) + "," + boost::json::serialize(log_data["email"]) + ", false );"
+		);
+		boost::mysql::results result;
+		conn_.execute(stmt.bind(), result);
+	}
     // Returns a bad request response
     auto const bad_request =
     [&req](beast::string_view why)

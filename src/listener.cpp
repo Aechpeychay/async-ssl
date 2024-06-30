@@ -1,10 +1,12 @@
 #include "listener.h"
     listener::listener(
+		mysql::unix_connection& conn,
         net::io_context& ioc,
         ssl::context& ctx,
         tcp::endpoint endpoint,
         std::shared_ptr<std::string const> const& doc_root)
-        : ioc_(ioc)
+		: conn_(conn)
+        , ioc_(ioc)
         , ctx_(ctx)
         , acceptor_(ioc)
         , doc_root_(doc_root)
@@ -74,6 +76,7 @@
         {
             // Create the session and run it
             std::make_shared<session>(
+				conn_,
                 std::move(socket),
                 ctx_,
                 doc_root_)->run();

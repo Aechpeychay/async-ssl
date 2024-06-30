@@ -14,17 +14,28 @@
     This implements a multi-user chat room using WebSocket.
 */
 //------------------------------------------------------------------------------
+#include <boost/mysql/error_with_diagnostics.hpp>
+#include <boost/mysql/handshake_params.hpp>
+#include <boost/mysql/results.hpp>
+#include <boost/mysql/tcp_ssl.hpp>
+#include <boost/mysql/unix.hpp>
+#define BOOST_ASIO_HAS_LOCAL_SOCKETS
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ssl/context.hpp>
+#include <boost/system/system_error.hpp>
 
+#include <iostream>
+#include <string>
 #include <boost/asio/signal_set.hpp>
 #include <iostream>
 #include <thread>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/ip/tcp.hpp>
 #include "listener.h"
 #include "server_certificate.h"
 
 using boost::asio::ip::tcp;
 namespace ssl = boost::asio::ssl;
+namespace mysql = boost::mysql;
 typedef ssl::stream<tcp::socket> ssl_socket;
 
 namespace {
@@ -48,17 +59,10 @@ int
 main(int argc, char* argv[])
 {
     // Check command line arguments.
-    if (argc != 4)
-    {
-        std::cerr <<
-            "Usage: websocket-chat-server <address> <port> <doc_root>\n" <<
-            "Example:\n" <<
-            "    websocket-chat-server 0.0.0.0 8080 .\n";
-        return EXIT_FAILURE;
-    }
-    auto address = net::ip::make_address(argv[1]);
-    auto port = static_cast<unsigned short>(std::atoi(argv[2]));
-    auto doc_root = argv[3];
+
+    auto address = net::ip::make_address("0.0.0.0");
+    auto port = 8080;
+    auto doc_root = ".";
     const unsigned num_threads = std::thread::hardware_concurrency();
 
     // The io_context is required for all I/O
@@ -70,8 +74,29 @@ main(int argc, char* argv[])
     // This holds the self-signed certificate used by the server
     load_server_certificate(ctx);
 
+    const char* socket_path = "/var/run/mysqld/mysqld.sock";
+
+	// Represents a connection to the MySQL server.
+	mysql::unix_connection conn(ioc);
+
+	// Resolve the hostname to get a collection of endpoints
+	boost::asio::ip::tcp::resolver resolver(ioc.get_executor());
+
+    boost::asio::local::stream_protocol::endpoint ep(socket_path);
+
+	// The username, password and database to use
+	mysql::handshake_params params(
+		"root",                // username
+		"12345",                // password
+		"boost_example"  // database
+	);
+
+	// Connect to the server using the first endpoint returned by the resolver
+	conn.connect(ep, params);
+
     // Create and launch a listening port
     std::make_shared<listener>(
+		conn,
         ioc,
         ctx,
         tcp::endpoint{address, port},
@@ -81,6 +106,7 @@ main(int argc, char* argv[])
 	RunWorkers(std::max(1u, num_threads), [&ioc] {
 		ioc.run();
 	});
+
 
     // (If we get here, it means we got a SIGINT or SIGTERM)
 

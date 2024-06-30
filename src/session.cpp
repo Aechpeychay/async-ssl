@@ -53,10 +53,12 @@
 				sp->need_eof()));
 	}
     session::session(
+		mysql::unix_connection& conn,
         tcp::socket&& socket,
         ssl::context& ctx,
         std::shared_ptr<std::string const> const& doc_root)
-        : stream_(std::move(socket), ctx)
+		: conn_(conn)
+        , stream_(std::move(socket), ctx)
         , doc_root_(doc_root)
         , lambda_(*this)
     {
@@ -116,7 +118,7 @@
             return fail(ec, "read");
 
         // Send the response
-        handle_request(*doc_root_, std::move(req_), lambda_);
+        handle_request(*doc_root_, std::move(req_), lambda_, conn_);
     }
 
 	void

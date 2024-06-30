@@ -8,12 +8,14 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <boost/mysql.hpp>
 #include "request_handler.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 namespace ssl = boost::asio::ssl;       // from <boost/asio/ssl.hpp>
+namespace mysql = boost::mysql;
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 
@@ -44,11 +46,13 @@ class session : public std::enable_shared_from_this<session>
     http::request<http::string_body> req_;
     std::shared_ptr<void> res_;
     send_lambda lambda_;
-
+	mysql::unix_connection& conn_;
+	
 public:
     // Take ownership of the socket
     explicit
     session(
+		mysql::unix_connection& conn,
         tcp::socket&& socket,
         ssl::context& ctx,
         std::shared_ptr<std::string const> const& doc_root);
