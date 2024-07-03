@@ -5,4 +5,4 @@ poco/1.13.3
 CMakeDeps
 CMakeToolchain
 [layout]
-cmake_layout 
+cmake_layout
