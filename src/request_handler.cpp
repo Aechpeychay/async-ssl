@@ -1,5 +1,18 @@
 #include "request_handler.h"
 	
+  /*  void email_sender(std::string email, Token jwt){
+       MailMessage msg;
+       msg.addRecipient (MailRecipient (MailRecipient::PRIMARY_RECIPIENT,
+                                           "bob@example.com", "Bob"));
+        msg.setSender ("Me <me@example.com>");
+        msg.setSubject ("Subject");
+        msg.setContent ("Content");
+
+        SMTPClientSession smtp ("mail.example.com");
+        smtp.login ();
+        smtp.sendMessage (msg);
+        smtp.close ();     
+    }*/
 	beast::string_view
 	mime_type(beast::string_view path)
 	{

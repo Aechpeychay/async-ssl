@@ -24,7 +24,6 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/context.hpp>
 #include <boost/system/system_error.hpp>
-
 #include <iostream>
 #include <string>
 #include <boost/asio/signal_set.hpp>
@@ -59,10 +58,18 @@ int
 main(int argc, char* argv[])
 {
     // Check command line arguments.
+    if (argc != 4)
+    {
+        std::cerr <<
+            "Usage: http-server-async-ssl <address> <port> <doc_root> \n" <<
+            "Example:\n" <<
+            "    http-server-async-ssl 0.0.0.0 8080 .\n";
+        return EXIT_FAILURE;
+    }
+    auto const address = net::ip::make_address(argv[1]);
+    auto const port = static_cast<unsigned short>(std::atoi(argv[2]));
+    auto const doc_root = std::make_shared<std::string>(argv[3]);
 
-    auto address = net::ip::make_address("0.0.0.0");
-    auto port = 8080;
-    auto doc_root = ".";
     const unsigned num_threads = std::thread::hardware_concurrency();
 
     // The io_context is required for all I/O
@@ -86,9 +93,9 @@ main(int argc, char* argv[])
 
 	// The username, password and database to use
 	mysql::handshake_params params(
-		"root",                // username
-		"12345",                // password
-		"boost_example"  // database
+		"db_forum_user",                // username
+		"9789851D",                // password
+		"db_forum"  // database
 	);
 
 	// Connect to the server using the first endpoint returned by the resolver
@@ -100,7 +107,7 @@ main(int argc, char* argv[])
         ioc,
         ctx,
         tcp::endpoint{address, port},
-        std::make_shared<std::string>(doc_root))->run();
+        doc_root)->run();
 
 	// 6. Запускаем обработку асинхронных операций
 	RunWorkers(std::max(1u, num_threads), [&ioc] {

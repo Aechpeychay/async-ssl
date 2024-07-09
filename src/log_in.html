@@ -5,16 +5,16 @@
 	<title>Post JSON to Server</title>
 	<script>
 		function send() {
-			var name = document.getElementById("name").value;
 			var email = document.getElementById("email").value;
+            var password = document.getElementById("password").value;
 			var result = document.getElementById("result");
 		
 			const json = {
-				name: name,
+                password: password,
 				email: email,
 			};
 
-			fetch("/register", {
+			fetch("/log_in", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -27,8 +27,8 @@
 
 <body>
 	<h1>Welcome To GFG</h1>
-	<input type="text" id="name" placeholder="Name" />
 	<input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="password" />
 	<button onclick="send()">Send</button>
 </body>
 

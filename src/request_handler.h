@@ -1,4 +1,5 @@
 #pragma once
+#include "boost/date_time/posix_time/posix_time.hpp"
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/ssl.hpp>
@@ -18,7 +19,12 @@ namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 namespace ssl = boost::asio::ssl;       // from <boost/asio/ssl.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+using namespace boost::posix_time;
 using namespace std::literals;
+
+ 
+    // Send email
+//    void email_sender();
 	// Return a reasonable mime type based on the extension of a file.
 	beast::string_view
 	mime_type(beast::string_view path);
@@ -43,14 +49,55 @@ handle_request(
 	Send&& send,	
 	boost::mysql::unix_connection& conn_)
 {
-	if(req.target() == "/register"){
-		boost::json::object log_data = boost::json::parse(req.body()).as_object();
+      
+
+    auto const log_in = 
+    [&req, &conn_](){ 
+        boost::json::object log_data = boost::json::parse(req.body()).as_object();
+        boost::mysql::statement stmt = conn_.prepare_statement(
+            "select * form user_account where email = '" + boost::json::serialize(log_data["email"]) + "' and password = '" + boost::json::serialize(log_data["password"]) + "';"
+        );
+        boost::mysql::results result;
+        conn_.execute(stmt.bind(), result);
+        if(result.empty()){
+            http::response<http::string_body> res{http::status::unknown, req.version()};
+            res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+            res.set(http::field::content_type, "text/html");
+            res.keep_alive(req.keep_alive());
+            res.body() = "failed to login";
+            res.prepare_payload();
+            return res;
+        }
+        else {
+            http::response<http::string_body> res{http::status::unknown, req.version()};
+            res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+            res.set(http::field::content_type, "text/html");
+            res.keep_alive(req.keep_alive());
+            res.body() = "successfuly login";
+            res.prepare_payload();
+            return res;
+        }
+    };
+
+    // TODO:: hash password
+    auto const registration = 
+    [&req, &conn_](){
+        boost::json::object log_data = boost::json::parse(req.body()).as_object();
 		boost::mysql::statement stmt = conn_.prepare_statement(
-			"insert into users (name, email) values (" + boost::json::serialize(log_data["name"]) + "," + boost::json::serialize(log_data["email"]) + ", false );"
+			"insert into user_account (username, hashed_password, email, created, last_activity, is_moderator, user_status)" 
+            "values ('" + boost::json::serialize(log_data["name"]) + "', '" + boost::json::serialize(log_data["password"]) +  "' , '" + boost::json::serialize(log_data["email"]) + "',  NOW(), NOW(), FALSE, 1);" 
 		);
 		boost::mysql::results result;
 		conn_.execute(stmt.bind(), result);
-	}
+        http::response<http::string_body> res{http::status::unknown, req.version()};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "text/html");
+        res.keep_alive(req.keep_alive());
+        res.body() = "successful";
+        res.prepare_payload();
+        return res;
+    };
+
     // Returns a bad request response
     auto const bad_request =
     [&req](beast::string_view why)
@@ -90,11 +137,6 @@ handle_request(
         return res;
     };
 
-    // Make sure we can handle the method
-    if( req.method() != http::verb::get &&
-        req.method() != http::verb::head)
-        return send(bad_request("Unknown HTTP-method"));
-
     // Request path must be absolute and not contain "..".
     if( req.target().empty() ||
         req.target()[0] != '/' ||
@@ -111,6 +153,13 @@ handle_request(
     http::file_body::value_type body;
     body.open(path.c_str(), beast::file_mode::scan, ec);
 
+    // Registrate user
+	if(req.target() == "/register"){
+        return send(registration());
+	}
+    if(req.target() == "/log_in"){
+        return send(log_in());   
+    }
     // Handle the case where the file doesn't exist
     if(ec == beast::errc::no_such_file_or_directory)
         return send(not_found(req.target()));
