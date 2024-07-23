@@ -56,11 +56,13 @@
 		mysql::unix_connection& conn,
         tcp::socket&& socket,
         ssl::context& ctx,
-        std::shared_ptr<std::string const> const& doc_root)
+        std::shared_ptr<std::string const> const& doc_root,
+        std::string signer)
 		: conn_(conn)
         , stream_(std::move(socket), ctx)
         , doc_root_(doc_root)
         , lambda_(*this)
+        , signer(signer)
     {
     }
 	void
@@ -118,7 +120,7 @@
             return fail(ec, "read");
 
         // Send the response
-        handle_request(*doc_root_, std::move(req_), lambda_, conn_);
+        handle_request(*doc_root_, std::move(req_), lambda_, conn_, signer);
     }
 
 	void

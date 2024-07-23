@@ -79,7 +79,8 @@
 				conn_,
                 std::move(socket),
                 ctx_,
-                doc_root_)->run();
+                doc_root_,
+                "0123456789ABCDEF0123456789ABCDEF")->run();
         }
 
         // Accept another connection

@@ -47,7 +47,7 @@ class session : public std::enable_shared_from_this<session>
     std::shared_ptr<void> res_;
     send_lambda lambda_;
 	mysql::unix_connection& conn_;
-	
+    Poco::JWT::Signer signer;
 public:
     // Take ownership of the socket
     explicit
@@ -55,7 +55,8 @@ public:
 		mysql::unix_connection& conn,
         tcp::socket&& socket,
         ssl::context& ctx,
-        std::shared_ptr<std::string const> const& doc_root);
+        std::shared_ptr<std::string const> const& doc_root,
+        std::string signer);
 
     // Start the asynchronous operation
     void
