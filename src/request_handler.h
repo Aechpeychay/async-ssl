@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/redis/src.hpp>
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -17,6 +18,7 @@
 #include <Poco/Net/SMTPClientSession.h>
 #include <Poco/JWT/Token.h>
 #include <Poco/JWT/Signer.h>
+#include <Poco/Timestamp.h>
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -57,19 +59,28 @@ handle_request(
     [&req, &signer, &conn_](){
         std::string jwt = req.target().substr(7);
         Poco::JWT::Token token = signer.verify(jwt);
-        std::string id = token.payload().get("id");
-        if(signer.tryVerify(jwt, token)){   
+        std::string id = token.payload().get("sub");
+        Poco::Timestamp timestamp;
+        timestamp.update();
+        if(signer.tryVerify(jwt, token) && timestamp < token.getExpiration()){ 
             boost::mysql::statement stmt = conn_.prepare_statement(
                 "update user_account set user_status = 2 where user_id = ? ;"
             ); 
             boost::mysql::results result;
             conn_.execute(stmt.bind(id), result);
-        }
         http::response<http::string_body> res{http::status::unknown, req.version()};
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(http::field::content_type, "application/json");
         res.keep_alive(req.keep_alive());
         res.body() = "{ \"message\" : \"log_in true\" }";
+        res.prepare_payload();
+        return res;
+        }
+        http::response<http::string_body> res{http::status::unknown, req.version()};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "application/json");
+        res.keep_alive(req.keep_alive());
+        res.body() = "{ \"message\" : \"log_in false\" }";
         res.prepare_payload();
         return res;
     };
@@ -119,14 +130,19 @@ handle_request(
         );
         conn_.execute(stmt_for_id.bind(boost::json::serialize(log_data["name"]),  boost::json::serialize(log_data["password"]), boost::json::serialize(log_data["email"])), result);
         token.setSubject(std::to_string(result.rows().at(0).at(0).as_int64()));
-
+        token.setAlgorithm("HS256");
+        token.setType("JWT");
+        Poco::Timestamp timestamp;
+        timestamp.update();
+        timestamp = timestamp + Poco::Timespan(1,0);
+        token.setExpiration(timestamp);
         email.pop_back();
         Poco::Net::MailMessage msg;
         msg.addRecipient(Poco::Net::MailRecipient (Poco::Net::MailRecipient::PRIMARY_RECIPIENT,
                                           email.substr(1)));
         msg.setSender("aechpeychay@aechpeychay.ru");
         msg.setSubject("Subject");
-        msg.setContent("https://aechpeychay.ru/token/" + token.toString());
+        msg.setContent("https://aechpeychay.ru/token/" + signer.sign(token, Poco::JWT::Signer::ALGO_HS256));
 
         Poco::Net::SMTPClientSession smtp("connect.smtp.bz", 2525);
         smtp.login(Poco::Net::SMTPClientSession::LoginMethod::AUTH_LOGIN, "aechpeychay@aechpeychay.ru", "w1nM09FqMBmZ");
