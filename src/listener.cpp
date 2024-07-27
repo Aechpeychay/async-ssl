@@ -1,11 +1,13 @@
 #include "listener.h"
     listener::listener(
+        Poco::Redis::Client& redis_conn,
 		mysql::unix_connection& conn,
         net::io_context& ioc,
         ssl::context& ctx,
         tcp::endpoint endpoint,
         std::shared_ptr<std::string const> const& doc_root)
-		: conn_(conn)
+		: redis_conn_(redis_conn)
+        , conn_(conn)
         , ioc_(ioc)
         , ctx_(ctx)
         , acceptor_(ioc)
@@ -76,6 +78,7 @@
         {
             // Create the session and run it
             std::make_shared<session>(
+                redis_conn_,
 				conn_,
                 std::move(socket),
                 ctx_,

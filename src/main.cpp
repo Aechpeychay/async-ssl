@@ -29,6 +29,7 @@
 #include <boost/asio/signal_set.hpp>
 #include <iostream>
 #include <thread>
+
 #include "listener.h"
 #include "server_certificate.h"
 
@@ -101,8 +102,12 @@ main(int argc, char* argv[])
 	// Connect to the server using the first endpoint returned by the resolver
 	conn.connect(ep, params);
 
+    Poco::Redis::Client redis_conn;
+    redis_conn.connect("127.0.0.0:6379");
+
     // Create and launch a listening port
     std::make_shared<listener>(
+        redis_conn,
 		conn,
         ioc,
         ctx,

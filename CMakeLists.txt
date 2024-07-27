@@ -5,10 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_CXX_FLAGS "-g")
 
-find_package(Boost REQUIRED COMPONENTS charconv json date_time)
+find_package(Boost REQUIRED COMPONENTS charconv json)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
-find_package(Poco REQUIRED Net JWT)
+find_package(Poco REQUIRED Net JWT Redis)
 
 add_executable(server
         src/main.cpp
@@ -20,5 +20,5 @@ add_executable(server
         src/request_handler.h
         src/request_handler.cpp
   )
-target_link_libraries(server PRIVATE Boost::charconv Boost::json Boost::date_time
-  Poco::JWT Poco::Net Threads::Threads OpenSSL::Crypto OpenSSL::SSL)
+target_link_libraries(server PRIVATE Boost::charconv Boost::json
+  Poco::JWT Poco::Net Poco::Redis Threads::Threads OpenSSL::Crypto OpenSSL::SSL)

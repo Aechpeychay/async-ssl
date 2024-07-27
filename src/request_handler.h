@@ -1,6 +1,5 @@
 #pragma once
-#include <boost/redis/src.hpp>
-#include "boost/date_time/posix_time/posix_time.hpp"
+#include <Poco/Redis/Client.h>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/ssl.hpp>
@@ -52,7 +51,8 @@ handle_request(
 	http::request<Body, http::basic_fields<Allocator>>&& req,
 	Send&& send,	
 	boost::mysql::unix_connection& conn_,
-    Poco::JWT::Signer& signer)
+    Poco::JWT::Signer& signer,
+    Poco::Redis::Client& redis_conn)
 { 
 
     auto const token_ver = 

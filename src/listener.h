@@ -4,6 +4,7 @@
 #include <boost/beast/ssl.hpp>
 #include <memory>
 #include <string>
+#include <Poco/Redis/Client.h>
 #include "session.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
@@ -22,9 +23,10 @@ class listener : public std::enable_shared_from_this<listener>
     tcp::acceptor acceptor_;
     std::shared_ptr<std::string const> doc_root_;
 	mysql::unix_connection& conn_;
-
+    Poco::Redis::Client& redis_conn_;
 public:
     listener(
+        Poco::Redis::Client& redis_conn,        
 		mysql::unix_connection& conn,
         net::io_context& ioc,
         ssl::context& ctx,

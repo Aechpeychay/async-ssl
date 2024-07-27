@@ -48,10 +48,12 @@ class session : public std::enable_shared_from_this<session>
     send_lambda lambda_;
 	mysql::unix_connection& conn_;
     Poco::JWT::Signer signer;
+    Poco::Redis::Client& redis_conn_;
 public:
     // Take ownership of the socket
     explicit
     session(
+        Poco::Redis::Client& redis_conn,
 		mysql::unix_connection& conn,
         tcp::socket&& socket,
         ssl::context& ctx,

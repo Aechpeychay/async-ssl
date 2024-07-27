@@ -53,6 +53,7 @@
 				sp->need_eof()));
 	}
     session::session(
+        Poco::Redis::Client& redis_conn,
 		mysql::unix_connection& conn,
         tcp::socket&& socket,
         ssl::context& ctx,
@@ -120,7 +121,7 @@
             return fail(ec, "read");
 
         // Send the response
-        handle_request(*doc_root_, std::move(req_), lambda_, conn_, signer);
+        handle_request(*doc_root_, std::move(req_), lambda_, conn_, signer, redis_conn_);
     }
 
 	void
